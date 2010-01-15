@@ -1,0 +1,27 @@
+*** C:\Program Files\CodeGear\RAD Studio\6.0\source\Win32\internet\HTTPD2.pas	2008-08-30 04:00:00.000000000 +0900
+--- Q:\Delphi\mod-pascal\HTTPD2.pas	2010-01-14 03:35:30.265625000 +0900
+***************
+*** 229,239 ****
+   * @brief Apache Configuration
+   *)
+  const
+!   MODULE_MAGIC_COOKIE = $041503230;                 (* "AP20" *)
+    {$EXTERNALSYM MODULE_MAGIC_COOKIE}
+!   MODULE_MAGIC_NUMBER_MAJOR = 20020903; { Apache 2.0.42 } 
+    {$EXTERNALSYM MODULE_MAGIC_NUMBER_MAJOR}
+!   MODULE_MAGIC_NUMBER_MINOR = 0;                   (* 0...n *)
+    {$EXTERNALSYM MODULE_MAGIC_NUMBER_MINOR}
+    MODULE_MAGIC_NUMBER = MODULE_MAGIC_NUMBER_MAJOR; (* backward compat *)
+    {$EXTERNALSYM MODULE_MAGIC_NUMBER}
+--- 229,239 ----
+   * @brief Apache Configuration
+   *)
+  const
+!   MODULE_MAGIC_COOKIE = $041503232;                 (* "AP22" *)
+    {$EXTERNALSYM MODULE_MAGIC_COOKIE}
+!   MODULE_MAGIC_NUMBER_MAJOR = 20051115; { Apache 2.2.12 } 
+    {$EXTERNALSYM MODULE_MAGIC_NUMBER_MAJOR}
+!   MODULE_MAGIC_NUMBER_MINOR = 23;                   (* 0...n *)
+    {$EXTERNALSYM MODULE_MAGIC_NUMBER_MINOR}
+    MODULE_MAGIC_NUMBER = MODULE_MAGIC_NUMBER_MAJOR; (* backward compat *)
+    {$EXTERNALSYM MODULE_MAGIC_NUMBER}

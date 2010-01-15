@@ -1,0 +1,11 @@
+syntax: glob
+*.so
+*.dcu
+*.local
+*.identcache
+*.swp
+ApacheTwoApp.pas
+HTTPD2.pas
+
+syntax: regexp
+__history/.*
