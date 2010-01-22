@@ -3,7 +3,7 @@ unit uMain;
 interface
 
 uses
-  SysUtils, Classes, HTTPApp, uPSComponent, uPSCompiler, uPSRuntime;
+  SysUtils, Classes, HTTPApp, uPSUtils, uPSComponent, uPSCompiler, uPSRuntime;
 
 type
   TPascalModule = class(TWebModule)
@@ -15,10 +15,17 @@ type
     procedure ScriptEngineExecImport(Sender: TObject; se: TPSExec;
       x: TPSRuntimeClassImporter);
     procedure ScriptEngineExecute(Sender: TPSScript);
+    function ScriptEngineFindUnknownFile(Sender: TObject;
+      const OrginFileName: AnsiString; var FileName,
+      Output: AnsiString): Boolean;
   private
     FRequest: TWebRequest;
     FResponse: TWebResponse;
-    procedure SetResponseContent(const S: string);
+    FResponseStream: TStringStream;
+    FDefaultEncoding: string;
+    FScriptRoot: string;
+    procedure WriteLn(const S: string);
+    function GetUtf8Encoding: TEncoding;
   public
     constructor Create(AOwner: TComponent); override;
   end;
@@ -46,35 +53,44 @@ uses
 
 {$R *.dfm}
 
+{ TPascalModule }
 constructor TPascalModule.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   FRequest := nil;
   FResponse := nil;
+  FDefaultEncoding := 'utf-8';
+  { パスを取得 }
+  FScriptRoot := GetEnvironmentVariable('PASCAL_SCRIPT_ROOT');
 end;
 
-procedure TPascalModule.SetResponseContent(const S: string);
+procedure TPascalModule.WriteLn(const S: string);
 begin
-  FResponse.Content := S;
+  FResponse.Content := FResponse.Content + S + #13#10;
+end;
+
+function TPascalModule.GetUtf8Encoding: TEncoding;
+begin
+  Result := TEncoding.GetEncoding(65001);
 end;
 
 procedure TPascalModule.PascalModuleScriptMainAction(Sender: TObject;
   Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
 var
-  ScriptRoot, ScriptPath, Messages: string;
+  ScriptPath, Messages: string;
   Compiled: Boolean;
   i: Integer;
 begin
   { リクエストとレスポンスを保持 }
   FRequest := Request;
   FResponse := Response;
+  { レスポンスヘッダの設定 }
+  Response.ContentEncoding := FDefaultEncoding;
   try
-    { パスを取得 }
-    ScriptRoot := GetEnvironmentVariable('PASCAL_SCRIPT_ROOT');
     { スクリプト読み込み }
-    ScriptPath :=  ScriptRoot + '\index.pas';
+    ScriptPath :=  FScriptRoot + '\index.rops';
     try
-      ScriptEngine.Script.LoadFromFile(ScriptPath);
+      ScriptEngine.Script.LoadFromFile(ScriptPath, GetUtf8Encoding);
       { コンパイル }
       Compiled := ScriptEngine.Compile;
       for i := 0 to ScriptEngine.CompilerMessageCount -1 do
@@ -93,7 +109,15 @@ begin
       Response.StatusCode := 500;
       Response.Content := ScriptPath;
     end;
+    if Response.Content <> '' then
+    begin
+      FResponseStream := TStringStream.Create(Response.Content, GetUtf8Encoding);
+      FResponseStream.Position := 0;
+      Response.ContentStream := FResponseStream;
+      Response.SendResponse;
+    end;
   finally
+    FResponseStream.Free;
     FRequest := nil;
     FResponse := nil;
   end;
@@ -101,7 +125,7 @@ end;
 
 procedure TPascalModule.ScriptEngineCompile(Sender: TPSScript);
 begin
-  Sender.AddMethod(Self, @TPascalModule.SetResponseContent, 'procedure SetResponseContent(const S: string);');
+  Sender.AddMethod(Self, @TPascalModule.WriteLn, 'procedure WriteLn(const S: string);');
   Sender.AddRegisteredPTRVariable('Request', 'TWebRequest');
   Sender.AddRegisteredPTRVariable('Response', 'TWebResponse');
 end;
@@ -136,6 +160,31 @@ procedure TPascalModule.ScriptEngineExecute(Sender: TPSScript);
 begin
   ScriptEngine.SetPointerToData('Request', @FRequest, ScriptEngine.FindNamedType('TWebRequest'));
   ScriptEngine.SetPointerToData('Response', @FResponse, ScriptEngine.FindNamedType('TWebResponse'));
+end;
+
+function TPascalModule.ScriptEngineFindUnknownFile(Sender: TObject;
+  const OrginFileName: AnsiString; var FileName, Output: AnsiString): Boolean;
+var
+  Buffer: TStringList;
+  ScriptPath: string;
+begin
+  { usesで不明なファイルの処理 }
+  ScriptPath := FScriptRoot + '\' + FileName + '.rops';
+  if FileExists(ScriptPath) then
+  begin
+    Buffer := TStringList.Create;
+    try
+      Buffer.LoadFromFile(ScriptPath, GetUtf8Encoding);
+      Output := Buffer.Text;
+    finally
+      Buffer.Free;
+    end;
+    Result := True;
+  end
+  else
+  begin
+    Result := False;
+  end;
 end;
 
 end.

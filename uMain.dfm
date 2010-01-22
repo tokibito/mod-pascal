@@ -10,13 +10,14 @@ object PascalModule: TPascalModule
   Height = 150
   Width = 215
   object ScriptEngine: TPSScript
-    CompilerOptions = []
+    CompilerOptions = [icAllowUnit]
     OnCompile = ScriptEngineCompile
     OnExecute = ScriptEngineExecute
     OnCompImport = ScriptEngineCompImport
     OnExecImport = ScriptEngineExecImport
     Plugins = <>
     UsePreProcessor = False
+    OnFindUnknownFile = ScriptEngineFindUnknownFile
     Left = 24
     Top = 12
   end
